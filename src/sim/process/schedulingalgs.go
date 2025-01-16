@@ -3,7 +3,7 @@ package process
 import (
 	"cmp"
 	"container/heap"
-	"gotest.tools/v3/assert"
+	"log"
 	"slices"
 	"src/sim"
 )
@@ -21,11 +21,17 @@ func Sim(processes *Slice, algs ...Alg) (res []*Slice) {
 }
 
 func PreemptiveLCFS(processes *Slice) *Slice {
-	assert.Assert(t,
-		slices.IsSortedFunc([]Process(*processes), func(a, b Process) int { return cmp.Compare(a.arriveTime, b.arriveTime) }),
-		"The process scheduling algorithms have to receive a slice of Processes sorted by arriveTime")
-	assert.Assert(t, processes != nil, "The process slice to be simulated cannot be nil")
-	assert.Assert(t, len(*processes) != 0, "The process slice to be simulated cannot be empty")
+	if isSorted := slices.IsSortedFunc([]Process(*processes), func(a, b Process) int {
+		return cmp.Compare(a.arriveTime, b.arriveTime)
+	}); !isSorted {
+		log.Panic("The process scheduling algorithms have to receive a slice of Processes sorted by arriveTime")
+	}
+	if *processes == nil {
+		log.Panic("The process slice to be simulated cannot be nil")
+	}
+	if len(*processes) == 0 {
+		log.Panic("The process slice to be simulated cannot be empty")
+	}
 
 	var time uint16
 	// processes will be pushed onto this stack as they arrive, and so they will naturally be sorted
@@ -73,11 +79,17 @@ func PreemptiveLCFS(processes *Slice) *Slice {
 	return processes
 }
 func LCFS(processes *Slice) *Slice {
-	assert.Assert(t,
-		slices.IsSortedFunc([]Process(*processes), func(a, b Process) int { return cmp.Compare(a.arriveTime, b.arriveTime) }),
-		"The process scheduling algorithms have to receive a slice of Processes sorted by arriveTime")
-	assert.Assert(t, processes != nil, "The process slice to be simulated cannot be nil")
-	assert.Assert(t, len(*processes) != 0, "The process slice to be simulated cannot be empty")
+	if isSorted := slices.IsSortedFunc([]Process(*processes), func(a, b Process) int {
+		return cmp.Compare(a.arriveTime, b.arriveTime)
+	}); !isSorted {
+		log.Panic("The process scheduling algorithms have to receive a slice of Processes sorted by arriveTime")
+	}
+	if *processes == nil {
+		log.Panic("The process slice to be simulated cannot be nil")
+	}
+	if len(*processes) == 0 {
+		log.Panic("The process slice to be simulated cannot be empty")
+	}
 
 	var time uint16
 	// processes will be pushed onto this stack as they arrive, and so they will naturally be sorted
@@ -122,11 +134,17 @@ func LCFS(processes *Slice) *Slice {
 	return processes
 }
 func PreemptiveSJF(processes *Slice) *Slice {
-	assert.Assert(t,
-		slices.IsSortedFunc([]Process(*processes), func(a, b Process) int { return cmp.Compare(a.arriveTime, b.arriveTime) }),
-		"The process scheduling algorithms have to receive a slice of Processes sorted by arriveTime")
-	assert.Assert(t, processes != nil, "The process slice to be simulated cannot be nil")
-	assert.Assert(t, len(*processes) != 0, "The process slice to be simulated cannot be empty")
+	if isSorted := slices.IsSortedFunc([]Process(*processes), func(a, b Process) int {
+		return cmp.Compare(a.arriveTime, b.arriveTime)
+	}); !isSorted {
+		log.Panic("The process scheduling algorithms have to receive a slice of Processes sorted by arriveTime")
+	}
+	if *processes == nil {
+		log.Panic("The process slice to be simulated cannot be nil")
+	}
+	if len(*processes) == 0 {
+		log.Panic("The process slice to be simulated cannot be empty")
+	}
 
 	var time uint16
 	// processes will be pushed onto this heap as they arrive, and they will get sorted by shortest job
@@ -178,11 +196,17 @@ func PreemptiveSJF(processes *Slice) *Slice {
 	return processes
 }
 func SJF(processes *Slice) *Slice {
-	assert.Assert(t,
-		slices.IsSortedFunc([]Process(*processes), func(a, b Process) int { return cmp.Compare(a.arriveTime, b.arriveTime) }),
-		"The process scheduling algorithms have to receive a slice of Processes sorted by arriveTime")
-	assert.Assert(t, processes != nil, "The process slice to be simulated cannot be nil")
-	assert.Assert(t, len(*processes) != 0, "The process slice to be simulated cannot be empty")
+	if isSorted := slices.IsSortedFunc([]Process(*processes), func(a, b Process) int {
+		return cmp.Compare(a.arriveTime, b.arriveTime)
+	}); !isSorted {
+		log.Panic("The process scheduling algorithms have to receive a slice of Processes sorted by arriveTime")
+	}
+	if *processes == nil {
+		log.Panic("The process slice to be simulated cannot be nil")
+	}
+	if len(*processes) == 0 {
+		log.Panic("The process slice to be simulated cannot be empty")
+	}
 
 	var time uint16
 	// processes will be pushed onto this heap as they arrive, and they will get sorted by shortest job

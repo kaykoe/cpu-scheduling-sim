@@ -3,15 +3,11 @@ package process
 import (
 	"cmp"
 	"fmt"
+	"log"
 	"math/rand/v2"
 	"reflect"
 	"slices"
-	"testing"
-
-	"gotest.tools/v3/assert"
 )
-
-var t = &testing.T{}
 
 type Process struct {
 	id                uint16
@@ -23,8 +19,12 @@ type Process struct {
 
 // Gen generates a slice of processes, sorted by arriveTime
 func Gen(num uint16, maxArriveTime uint16, maxExecutionTime uint16) *Slice {
-	assert.Assert(t, num != 0, "Cannot generate 0 processes")
-	assert.Assert(t, maxExecutionTime != 0, "Cannot generate processes with zero execution time")
+	if num == 0 {
+		log.Panic("Cannot generate 0 processes")
+	}
+	if maxExecutionTime == 0 {
+		log.Panic("Cannot generate processes with zero execution time")
+	}
 
 	var processes Slice = make([]Process, num)
 	for i := range processes {
@@ -46,8 +46,12 @@ var processNumFields = reflect.TypeOf(Process{}).NumField()
 
 // Records implements the Recorder interface
 func (s *Slice) Records() (records [][]string) {
-	assert.Assert(t, s != nil, "The slice to get records from cannot be nil")
-	assert.Assert(t, len(*s) != 0, "The slice to get records from cannot be empty")
+	if s == nil {
+		log.Panic("The slice to get records from cannot be nil")
+	}
+	if len(*s) == 0 {
+		log.Panic("The slice to get records from cannot be empty")
+	}
 
 	records = make([][]string, len(*s)+1)
 	for i := range records {
@@ -70,8 +74,12 @@ func (s *Slice) Records() (records [][]string) {
 
 // Copy makes a deep copy of the passed in Slice
 func (s *Slice) Copy() *Slice {
-	assert.Assert(t, s != nil, "The slice to copy cannot be nil")
-	assert.Assert(t, len(*s) != 0, "The slice to copy cannot be empty")
+	if s == nil {
+		log.Panic("The slice to copy cannot be nil")
+	}
+	if len(*s) == 0 {
+		log.Panic("The slice to copy cannot be empty")
+	}
 
 	c := make([]Process, len(*s))
 	for i := range *s {
@@ -84,23 +92,38 @@ func (s *Slice) Copy() *Slice {
 type Heap []*Process
 
 func (h *Heap) Len() int {
-	assert.Assert(t, h != nil, "The underlying slice of a heap cannot be nil")
+	if h == nil {
+		log.Panic("The underlying slice of a heap cannot be nil")
+	}
+
 	return len(*h)
 }
 func (h *Heap) Less(i, j int) bool {
-	assert.Assert(t, h != nil, "The underlying slice of a heap cannot be nil")
+	if h == nil {
+		log.Panic("The underlying slice of a heap cannot be nil")
+	}
+
 	return (*h)[i].executionTimeLeft < (*h)[j].executionTimeLeft
 }
 func (h *Heap) Swap(i, j int) {
-	assert.Assert(t, h != nil, "The underlying slice of a heap cannot be nil")
+	if h == nil {
+		log.Panic("The underlying slice of a heap cannot be nil")
+	}
+
 	(*h)[i], (*h)[j] = (*h)[j], (*h)[i]
 }
 func (h *Heap) Push(x any) {
-	assert.Assert(t, h != nil, "The underlying slice of a heap cannot be nil")
+	if h == nil {
+		log.Panic("The underlying slice of a heap cannot be nil")
+	}
+
 	*h = append(*h, x.(*Process))
 }
 func (h *Heap) Pop() any {
-	assert.Assert(t, h != nil, "The underlying slice of a heap cannot be nil")
+	if h == nil {
+		log.Panic("The underlying slice of a heap cannot be nil")
+	}
+
 	old := *h
 	n := len(old)
 	x := old[n-1]
