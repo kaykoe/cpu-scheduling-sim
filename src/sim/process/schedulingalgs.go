@@ -1,78 +1,114 @@
 package process
 
 import (
+	"cmp"
 	"container/heap"
-	"log"
+	"gotest.tools/v3/assert"
+	"slices"
 	"src/sim"
 )
 
-type Alg func(p *Slice) *Slice
+type Alg func(processes *Slice) *Slice
 
 // Sim runs a simulation of the given processes using the strategies in the alg slice
-func Sim(p *Slice, a []Alg) (res []*Slice) {
-	if len(a) == 0 {
-		log.Panic("empty algorithm slice")
-	}
+func Sim(processes *Slice, algs ...Alg) (res []*Slice) {
+	res = make([]*Slice, len(algs))
 
-	res = make([]*Slice, len(a))
-
-	for i, alg := range a {
-		res[i] = alg(p.Copy())
+	for i, alg := range algs {
+		res[i] = alg(processes.Copy())
 	}
 	return res
 }
 
-func PreemptiveLCFS(p *Slice) *Slice {
-	var time uint16
-	s := sim.NewStack[*Process]()
-	unvisited := 0
+func PreemptiveLCFS(processes *Slice) *Slice {
+	assert.Assert(t,
+		slices.IsSortedFunc([]Process(*processes), func(a, b Process) int { return cmp.Compare(a.arriveTime, b.arriveTime) }),
+		"The process scheduling algorithms have to receive a slice of Processes sorted by arriveTime")
+	assert.Assert(t, processes != nil, "The process slice to be simulated cannot be nil")
+	assert.Assert(t, len(*processes) != 0, "The process slice to be simulated cannot be empty")
 
-	for unvisited != len(*p) || !s.Empty() {
-		for i := unvisited; i < len(*p); i++ {
-			if (*p)[i].arriveTime > time {
-				unvisited = i
+	var time uint16
+	// processes will be pushed onto this stack as they arrive, and so they will naturally be sorted
+	// from last to first, which is perfect for LCFS
+	processStack := sim.NewStack[*Process](len(*processes))
+	// this is going to be another view into the underlying array, and by slicing it, we are able to
+	// skip iterating over processes that have already arrived before
+	unvisited := *processes
+
+	// if there are processes that have not yet arrived, or ones that are waiting, continue
+	for len(unvisited) != 0 || !processStack.Empty() {
+		for i := range unvisited {
+			if unvisited[i].arriveTime > time {
+				// if a process arrives later than now, we know that all processes that have arrived up to this point have been iterated over
+				// we can remove processes up to this one from our view of the array, as they have already been pushed onto the stack
+				unvisited = unvisited[i:]
 				break
 			}
-			s.Push(&(*p)[i])
-			if i == len(*p)-1 {
-				unvisited = len(*p)
+			// if a processes has arrived up to now, we push it onto the stack for it to wait for it's turn
+			processStack.Push(&unvisited[i])
+			// if the last process arrives, we need to empty our view
+			if i == len(unvisited)-1 {
+				unvisited = make([]Process, 0)
 			}
 		}
 
-		if !s.Empty() {
-			proc := s.Pop()
+		// if there is a process waiting, we give it execution time
+		if !processStack.Empty() {
+			proc := processStack.Pop()
 			time++
 			proc.executionTimeLeft--
+
 			if proc.executionTimeLeft == 0 {
 				proc.waitTime = time - proc.arriveTime - proc.executionTime
 				continue
 			}
-			s.Push(proc)
+			// if a process is not done executing we push it back on the stack and check if there are any
+			// newer once since this is preemptive lcfs
+			processStack.Push(proc)
 			continue
 		}
+		// if there are no processes waiting we just wait for them to arrive
 		time++
 	}
-	return p
+	return processes
 }
-func LCFS(p *Slice) *Slice {
-	var time uint16
-	s := sim.NewStack[*Process]()
-	unvisited := 0
+func LCFS(processes *Slice) *Slice {
+	assert.Assert(t,
+		slices.IsSortedFunc([]Process(*processes), func(a, b Process) int { return cmp.Compare(a.arriveTime, b.arriveTime) }),
+		"The process scheduling algorithms have to receive a slice of Processes sorted by arriveTime")
+	assert.Assert(t, processes != nil, "The process slice to be simulated cannot be nil")
+	assert.Assert(t, len(*processes) != 0, "The process slice to be simulated cannot be empty")
 
-	for unvisited != len(*p) || !s.Empty() {
-		for i := unvisited; i < len(*p); i++ {
-			if (*p)[i].arriveTime > time {
-				unvisited = i
+	var time uint16
+	// processes will be pushed onto this stack as they arrive, and so they will naturally be sorted
+	// from last to first, which is perfect for LCFS
+	processStack := sim.NewStack[*Process](len(*processes))
+	// this is going to be another view into the underlying array, and by slicing it, we are able to
+	// skip iterating over processes that have already arrived before
+	unvisited := *processes
+
+	// if there are processes that have not yet arrived, or ones that are waiting, continue
+	for len(unvisited) != 0 || !processStack.Empty() {
+		for i := range unvisited {
+			if unvisited[i].arriveTime > time {
+				// if a process arrives later than now, we know that all processes that have arrived up to this point have been iterated over
+				// we can remove processes up to this one from our view of the array, as they have already been pushed onto the stack
+				unvisited = unvisited[i:]
 				break
 			}
-			s.Push(&(*p)[i])
-			if i == len(*p)-1 {
-				unvisited = len(*p)
+			// if a processes has arrived up to now, we push it onto the stack for it to wait for it's turn
+			processStack.Push(&unvisited[i])
+			// if the last process arrives, we need to empty our view
+			if i == len(unvisited)-1 {
+				unvisited = make([]Process, 0)
 			}
 		}
 
-		if !s.Empty() {
-			proc := s.Pop()
+		// if there is a process waiting, we give it execution time
+		if !processStack.Empty() {
+			proc := processStack.Pop()
+			// since this is non-preemptive lcfs we execute the process all at once
+			// we can calculate the wait time right away since the process will be finished
 			proc.waitTime = time - proc.arriveTime
 			for proc.executionTimeLeft > 0 {
 				time++
@@ -80,64 +116,105 @@ func LCFS(p *Slice) *Slice {
 			}
 			continue
 		}
+		// if there are no processes waiting we just wait for them to arrive
 		time++
 	}
-	return p
+	return processes
 }
-func PreemptiveSJF(p *Slice) *Slice {
-	var time uint16
-	unvisited := 0
-	h := new(Heap)
-	*h = make([]*Process, 0, len(*p))
+func PreemptiveSJF(processes *Slice) *Slice {
+	assert.Assert(t,
+		slices.IsSortedFunc([]Process(*processes), func(a, b Process) int { return cmp.Compare(a.arriveTime, b.arriveTime) }),
+		"The process scheduling algorithms have to receive a slice of Processes sorted by arriveTime")
+	assert.Assert(t, processes != nil, "The process slice to be simulated cannot be nil")
+	assert.Assert(t, len(*processes) != 0, "The process slice to be simulated cannot be empty")
 
-	for unvisited != len(*p) || len(*h) != 0 {
-		for i := unvisited; i < len(*p); i++ {
-			if (*p)[i].arriveTime > time {
-				unvisited = i
+	var time uint16
+	// processes will be pushed onto this heap as they arrive, and they will get sorted by shortest job
+	// I'm using a heap here because the time complexity for heapify is way better than sort
+	// and we only need to know what the shortest job is
+	processHeap := new(Heap)
+	*processHeap = make([]*Process, 0, len(*processes))
+	// this is going to be another view into the underlying array, and by slicing it, we are able to
+	// skip iterating over processes that have already arrived before
+	unvisited := *processes
+
+	// if there are processes that have not yet arrived, or ones that are waiting, continue
+	for len(unvisited) != 0 || len(*processHeap) != 0 {
+		for i := range unvisited {
+			if unvisited[i].arriveTime > time {
+				// if a process arrives later than now, we know that all processes that have arrived up to this point have been iterated over
+				// we can remove processes up to this one from our view of the array, as they have already been pushed onto the stack
+				unvisited = unvisited[i:]
 				break
 			}
-			heap.Push(h, &(*p)[i])
-			if i == len(*p)-1 {
-				unvisited = len(*p)
+			// if a processes has arrived up to now, we push it onto the stack for it to wait for it's turn
+			heap.Push(processHeap, &(*processes)[i])
+			// if the last process arrives, we need to empty our view
+			if i == len(unvisited)-1 {
+				unvisited = make([]Process, 0)
 			}
 		}
 
-		if len(*h) != 0 {
-			proc := heap.Pop(h).(*Process)
+		// if there is a process waiting, we give it execution time
+		if len(*processHeap) != 0 {
+			proc := heap.Pop(processHeap).(*Process)
 			time++
 			proc.executionTimeLeft--
+
 			if proc.executionTimeLeft == 0 {
 				proc.waitTime = time - proc.arriveTime - proc.executionTime
 				continue
 			}
-			heap.Push(h, proc)
+			// if the process is not done executing we push it back onto the Heap
+			// which also fixes the ordering if it got broken
+			// we will then see if this is still the shortest job
+			heap.Push(processHeap, proc)
 			continue
 		}
+		// if there are no processes waiting we just wait for them to arrive
 		time++
 	}
 
-	return p
+	return processes
 }
-func SJF(p *Slice) *Slice {
-	var time uint16
-	unvisited := 0
-	h := new(Heap)
-	*h = make([]*Process, 0, len(*p))
+func SJF(processes *Slice) *Slice {
+	assert.Assert(t,
+		slices.IsSortedFunc([]Process(*processes), func(a, b Process) int { return cmp.Compare(a.arriveTime, b.arriveTime) }),
+		"The process scheduling algorithms have to receive a slice of Processes sorted by arriveTime")
+	assert.Assert(t, processes != nil, "The process slice to be simulated cannot be nil")
+	assert.Assert(t, len(*processes) != 0, "The process slice to be simulated cannot be empty")
 
-	for unvisited != len(*p) || len(*h) != 0 {
-		for i := unvisited; i < len(*p); i++ {
-			if (*p)[i].arriveTime > time {
-				unvisited = i
+	var time uint16
+	// processes will be pushed onto this heap as they arrive, and they will get sorted by shortest job
+	// I'm using a heap here because the time complexity for heapify is way better than sort
+	// and we only need to know what the shortest job is
+	processHeap := new(Heap)
+	*processHeap = make([]*Process, 0, len(*processes))
+	// this is going to be another view into the underlying array, and by slicing it, we are able to
+	// skip iterating over processes that have already arrived before
+	unvisited := *processes
+
+	// if there are processes that have not yet arrived, or ones that are waiting, continue
+	for len(unvisited) != 0 || len(*processHeap) != 0 {
+		for i := range unvisited {
+			if unvisited[i].arriveTime > time {
+				// if a process arrives later than now, we know that all processes that have arrived up to this point have been iterated over
+				// we can remove processes up to this one from our view of the array, as they have already been pushed onto the stack
+				unvisited = unvisited[i:]
 				break
 			}
-			heap.Push(h, &(*p)[i])
-			if i == len(*p)-1 {
-				unvisited = len(*p)
+			// if a processes has arrived up to now, we push it onto the stack for it to wait for it's turn
+			heap.Push(processHeap, &(*processes)[i])
+			// if the last process arrives, we need to empty our view
+			if i == len(unvisited)-1 {
+				unvisited = make([]Process, 0)
 			}
 		}
 
-		if len(*h) != 0 {
-			proc := heap.Pop(h).(*Process)
+		// if there is a process waiting, we give it execution time
+		if len(*processHeap) != 0 {
+			proc := heap.Pop(processHeap).(*Process)
+			// we can calculate the wait time right away, since the process will be executed all the way
 			proc.waitTime = time - proc.arriveTime
 			for proc.executionTimeLeft > 0 {
 				time++
@@ -145,7 +222,8 @@ func SJF(p *Slice) *Slice {
 			}
 			continue
 		}
+		// if there are no processes waiting we just wait for them to arrive
 		time++
 	}
-	return p
+	return processes
 }
