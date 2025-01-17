@@ -158,3 +158,68 @@ func LFU(referencePattern []uint16) *Slice {
 	}
 	return &res
 }
+
+// PersistentFrequencyLFU implements LFU without resetting the use frequency counter when unloading a page from memory
+func PersistentFrequencyLFU(referencePattern []uint16) *Slice {
+	if referencePattern == nil {
+		log.Panic("The reference pattern slice cannot be nil")
+	}
+	if len(referencePattern) == 0 {
+		log.Panic("The reference pattern has to contain something")
+	}
+	if len(referencePattern) > math.MaxUint16 {
+		log.Panicf("The reference pattern length cannot exceed %d", math.MaxUint16)
+	}
+
+	// the page table stores whether a page is in memory
+	pageTable := make(map[uint16]bool)
+	memory := make(map[uint16]*Page)
+	swap := make(map[uint16]*Page)
+	const FRAME_SIZE = 16
+	// this heap stores pages that are in memory, sorted by the amount of times they have been used since getting swapped into memory
+	// a heap is used because heapify has better time complexity than sort, and we only need the smallest element
+	deleteHeap := new(Heap)
+	*deleteHeap = make([]*Page, 0, FRAME_SIZE)
+
+	for _, page := range referencePattern {
+		pageTable[page] = false
+	}
+	for page := range maps.Keys(pageTable) {
+		swap[page] = &Page{
+			page,
+			0,
+			make([]uint16, 0, len(referencePattern)),
+			make([]uint16, 0, len(referencePattern))}
+	}
+
+	for i, page := range referencePattern {
+		if inMemory := pageTable[page]; !inMemory {
+			// if there is no space left in memory we need to move a page to swap
+			if deleteHeap.Len() == FRAME_SIZE {
+				// here we heapify the heap so that it takes into account uses that did not require swapping
+				heap.Init(deleteHeap)
+				victimPage := heap.Pop(deleteHeap).(*Page)
+				delete(memory, victimPage.id)
+				swap[victimPage.id] = victimPage
+				victimPage.swappedOutAt = append(victimPage.swappedOutAt, uint16(i))
+				pageTable[victimPage.id] = false
+			}
+
+			memory[page] = swap[page]
+			heap.Push(deleteHeap, memory[page])
+			delete(swap, page)
+			pageTable[page] = true
+			memory[page].pageFaultAt = append(memory[page].pageFaultAt, uint16(i))
+		}
+		// if the page was already in memory we just increment the amount of times it was used
+		memory[page].timesUsed++
+	}
+	res := Slice(make([]Page, 0, len(pageTable)))
+	for page := range maps.Values(swap) {
+		res = append(res, *page)
+	}
+	for page := range maps.Values(memory) {
+		res = append(res, *page)
+	}
+	return &res
+}
