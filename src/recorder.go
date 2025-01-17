@@ -29,7 +29,14 @@ func writeRecords(r Recorder, output io.Writer) {
 }
 
 func Save(r Recorder, outDir string) {
-	outDirPath := "../" + outDir + "/"
+	if outDir == "" {
+		log.Panic("you must provide the path for the output directory")
+	}
+
+	outDirPath := "../" + outDir
+	if outDirPath[len(outDirPath)-1] != '/' {
+		outDirPath += "/"
+	}
 	if err := os.MkdirAll(outDirPath, 0775); err != nil {
 		log.Panic(err)
 	}

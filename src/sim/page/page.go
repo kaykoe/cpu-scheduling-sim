@@ -33,12 +33,15 @@ func gen(numPages, len uint16) (referencePattern []uint16) {
 }
 
 // SaveReferencePattern saves the reference pattern to an output file in a .csv format
-func SaveReferencePattern(referencePattern []uint16) {
+func SaveReferencePattern(referencePattern []uint16, outDir string) {
 	if referencePattern == nil {
 		log.Panic("The reference pattern slice cannot be nil")
 	}
 	if len(referencePattern) == 0 {
 		log.Panic("The reference pattern has to contain something")
+	}
+	if outDir == "" {
+		log.Panic("you must provide the path for the output directory")
 	}
 
 	record := make([]string, len(referencePattern))
@@ -46,7 +49,10 @@ func SaveReferencePattern(referencePattern []uint16) {
 		record[i] = fmt.Sprint(index)
 	}
 
-	outDirPath := "../in/"
+	outDirPath := "../" + outDir
+	if outDirPath[len(outDirPath)-1] != '/' {
+		outDirPath += "/"
+	}
 	if err := os.MkdirAll(outDirPath, 0775); err != nil {
 		log.Panic(err)
 	}
