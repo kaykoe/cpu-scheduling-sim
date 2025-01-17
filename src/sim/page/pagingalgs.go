@@ -8,6 +8,8 @@ import (
 	"src/sim"
 )
 
+const FRAME_SIZE = 16
+
 type Alg func(referencePattern []uint16) *Slice
 
 // Sim runs a simulation of a randomly generated reference pattern using the strategies in the alg slice
@@ -48,7 +50,6 @@ func FIFO(referencePattern []uint16) *Slice {
 	pageTable := make(map[uint16]bool)
 	memory := make(map[uint16]*Page)
 	swap := make(map[uint16]*Page)
-	const FRAME_SIZE = 16
 	// the delete queue stores the indices of pages that are in memory in the order they were referenced
 	// this is perfect for implementing fifo
 	deleteQueue := sim.NewQueue[uint16](FRAME_SIZE)
@@ -108,7 +109,6 @@ func LFU(referencePattern []uint16) *Slice {
 	pageTable := make(map[uint16]bool)
 	memory := make(map[uint16]*Page)
 	swap := make(map[uint16]*Page)
-	const FRAME_SIZE = 16
 	// this heap stores pages that are in memory, sorted by the amount of times they have been used since getting swapped into memory
 	// a heap is used because heapify has better time complexity than sort, and we only need the smallest element
 	deleteHeap := new(Heap)
@@ -175,7 +175,6 @@ func PersistentFrequencyLFU(referencePattern []uint16) *Slice {
 	pageTable := make(map[uint16]bool)
 	memory := make(map[uint16]*Page)
 	swap := make(map[uint16]*Page)
-	const FRAME_SIZE = 16
 	// this heap stores pages that are in memory, sorted by the amount of times they have been used since getting swapped into memory
 	// a heap is used because heapify has better time complexity than sort, and we only need the smallest element
 	deleteHeap := new(Heap)

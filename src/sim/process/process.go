@@ -27,11 +27,20 @@ func Gen(num uint16, maxArriveTime uint16, maxExecutionTime uint16) *Slice {
 	}
 
 	var processes Slice = make([]Process, num)
-	for i := range processes {
-		processes[i] = Process{id: uint16(i),
-			arriveTime:    uint16(rand.UintN(uint(maxArriveTime))),
-			executionTime: uint16(1 + rand.UintN(uint(maxExecutionTime-1)))}
-		processes[i].executionTimeLeft = processes[i].executionTime
+	if maxArriveTime > 0 {
+		for i := range processes {
+			processes[i] = Process{id: uint16(i),
+				arriveTime:    uint16(rand.UintN(uint(maxArriveTime + 1))),
+				executionTime: uint16(1 + rand.UintN(uint(maxExecutionTime)))}
+			processes[i].executionTimeLeft = processes[i].executionTime
+		}
+	} else {
+		for i := range processes {
+			processes[i] = Process{id: uint16(i),
+				arriveTime:    0,
+				executionTime: uint16(1 + rand.UintN(uint(maxExecutionTime)))}
+			processes[i].executionTimeLeft = processes[i].executionTime
+		}
 	}
 
 	slices.SortFunc(processes, func(a, b Process) int {
