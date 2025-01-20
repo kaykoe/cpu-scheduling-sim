@@ -14,6 +14,7 @@
 # Go workspace file
 go.work
 go.work.sum
+/src/go.sum
 
 # env file
 .env
@@ -21,4 +22,5 @@ go.work.sum
 # IDE specific files
 .idea
 *.iml
-/src/go.sum
+
+__pycache__

@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"log"
+	"math"
 	"math/rand/v2"
 	"os"
 	"reflect"
@@ -26,8 +27,18 @@ func gen(numPages, len uint16) (referencePattern []uint16) {
 	}
 
 	referencePattern = make([]uint16, len)
+	// we use a normal distribution, because using a uniform distribution will not show a difference between the algorithms
+	// because they will be used the same number of times on average
+	mean := float64(numPages) / 2
+	// this mean is chosen so that our page numbers cover 99.8% of the distribution (3 standard deviations)
+	// a higher mean would make it so that there is less difference between the amount of accesses to the pages
+	// and a lower mean means that it is more probable that some of the pages will never be accessed
+	stdDev := mean / 3
 	for i := range referencePattern {
-		referencePattern[i] = uint16(rand.UintN(uint(numPages)))
+		// we clamp the values to the range of the number of pages, so that in the rare case that the value falls outside
+		// 3 standard deviations, we will still get a valid value
+		// we subtract the smallest non-zero float64 to avoid the case where the value is converted to 64, which would be the 65'th page
+		referencePattern[i] = uint16(math.Max(0, math.Min(float64(numPages)-math.SmallestNonzeroFloat64, rand.NormFloat64()*stdDev+mean)))
 	}
 	return referencePattern
 }
