@@ -166,7 +166,7 @@ func PreemptiveSJF(processes *Slice) *Slice {
 				break
 			}
 			// if a processes has arrived up to now, we push it onto the stack for it to wait for it's turn
-			heap.Push(processHeap, &(*processes)[i])
+			heap.Push(processHeap, &unvisited[i])
 			// if the last process arrives, we need to empty our view
 			if i == len(unvisited)-1 {
 				unvisited = make([]Process, 0)
@@ -228,7 +228,7 @@ func SJF(processes *Slice) *Slice {
 				break
 			}
 			// if a processes has arrived up to now, we push it onto the stack for it to wait for it's turn
-			heap.Push(processHeap, &(*processes)[i])
+			heap.Push(processHeap, &unvisited[i])
 			// if the last process arrives, we need to empty our view
 			if i == len(unvisited)-1 {
 				unvisited = make([]Process, 0)
